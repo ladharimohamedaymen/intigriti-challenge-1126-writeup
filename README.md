@@ -19,7 +19,8 @@
 ![Challenge 1126 walkthrough](challenge-1126-preview.gif)
 
 Step-by-step recreation of the solve — recon → the secret → the bug → exploit → flag.
-▶ Full-quality video: [`challenge-1126-explainer.mp4`](challenge-1126-explainer.mp4).
+▶ Full-quality video: [`challenge-1126-explainer.mp4`](challenge-1126-explainer.mp4) · also in [`video/`](video/).
+Short teaser reel: [`challenge-1126-solve-reel.gif`](challenge-1126-solve-reel.gif).
 *(The tool panes are faithful recreations for the write-up, not a desktop capture.)*
 
 ## TL;DR
@@ -212,5 +213,4 @@ This is a sign-then-mutate / TOCTOU on the signed payload. In order of preferenc
 ---
 
 Intigriti monthly CTF — Challenge 1126 (November 2026), authorized public program, no
-bounty. Related independent PoC:
-[Shahin-404/intigriti-challenge-1126-poc](https://github.com/Shahin-404/intigriti-challenge-1126-poc).
+bounty.
