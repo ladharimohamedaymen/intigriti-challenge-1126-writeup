@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Challenge 1126 — scene</title>
+<style>
+  /* ------- deterministic, white-background explainer. Every frame = render(t). ------- */
+  :root{
+    --ink:#10122b;        /* near-navy text */
+    --muted:#5b607a;
+    --line:#e4e6f0;
+    --panel:#ffffff;
+    --panel2:#f6f7fb;
+    --teal:#0fb97e;       /* accent (brand-adjacent green, NOT the logo mark) */
+    --tealsoft:#0fb97e22;
+    --amber:#e8803a;
+    --red:#e5484d;
+    --code:#0c1030;
+    --sans:-apple-system,"Segoe UI",Roboto,"DejaVu Sans",system-ui,sans-serif;
+    --mono:"DejaVu Sans Mono","Liberation Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1280px;height:720px;overflow:hidden;background:#fff}
+  body{font-family:var(--sans);color:var(--ink);position:relative}
+
+  /* header */
+  .hdr{position:absolute;left:0;right:0;top:0;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;border-bottom:1px solid var(--line)}
+  .brand{font-weight:800;font-size:22px;letter-spacing:.14em}
+  .brand .dot{color:var(--teal)}
+  .brand small{font-weight:600;letter-spacing:.22em;font-size:12px;color:var(--muted);margin-left:10px}
+  .hdr .right{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.04em}
+  .hdr .right b{color:var(--ink)}
+
+  /* stage */
+  .stage{position:absolute;left:0;right:0;top:64px;bottom:0}
+
+  /* tool window */
+  .win{position:absolute;left:120px;top:48px;width:1040px;height:396px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 60px -32px #10122b55;overflow:hidden;opacity:0}
+  .win .bar{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .win .bar .d{width:11px;height:11px;border-radius:50%;background:#d4d7e4}
+  .win .bar .ttl{margin-left:10px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .win .inner{padding:22px 26px;font-family:var(--mono);font-size:15px;line-height:1.75;color:var(--code)}
+  .win .inner.sans{font-family:var(--sans)}
+
+  .url{flex:1;margin-left:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-family:var(--mono);font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden}
+  .url .p{color:var(--teal)}
+  .dim{color:var(--muted)}
+  .g{color:var(--teal)}
+  .am{color:var(--amber)}
+  .kw{color:#7a5cff}
+  .st{color:#b0792a}
+  .cmt{color:#9aa0b8}
+  .hl{background:var(--tealsoft);border-radius:4px;padding:0 3px;box-shadow:0 0 0 1px var(--teal) inset;opacity:0}
+  .under{position:relative}
+  .under::after{content:"";position:absolute;left:0;right:100%;bottom:-3px;height:2px;background:var(--amber)}
+
+  /* hex */
+  .hex .row{display:flex;gap:18px}
+  .hex .off{color:#aab}
+  .hex .asc{color:var(--muted)}
+
+  /* byte-map */
+  .bmap{position:absolute;right:26px;top:70px;width:470px;display:grid;gap:8px}
+  .fr{display:grid;grid-template-columns:62px 1fr;border:1px solid var(--line);border-radius:9px;overflow:hidden;font-family:var(--mono);background:#fff}
+  .fr .o{background:var(--panel2);color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center}
+  .fr .c{padding:9px 11px;font-size:12.5px}
+  .fr .t{color:var(--amber);font-weight:700}
+  .fr .ds{color:var(--muted);font-size:11px}
+  .fr.sg{box-shadow:inset 4px 0 0 var(--teal)}
+  .fr.ev{box-shadow:inset 4px 0 0 var(--amber);border-color:var(--amber)}
+
+  .anno{position:absolute;font-family:var(--mono);font-size:12px;color:var(--amber);opacity:0}
+
+  /* caption lower third */
+  .cap{position:absolute;left:120px;right:120px;top:468px;opacity:0}
+  .cap .step{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+  .cap .txt{font-size:22px;font-weight:600;line-height:1.3;letter-spacing:-.01em;max-width:1000px}
+  .cap .txt b{color:var(--teal)}
+
+  /* intro / outro */
+  .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;opacity:0;padding:0 80px}
+  .center .big{font-weight:800;font-size:68px;letter-spacing:-.02em;line-height:1}
+  .center .big .dot{color:var(--teal)}
+  .center .sub{margin-top:18px;font-size:24px;color:var(--muted);font-weight:500}
+  .center .flag{margin-top:26px;font-family:var(--mono);font-size:20px;color:var(--teal);background:var(--tealsoft);border:1px solid var(--teal);border-radius:12px;padding:14px 20px}
+  .center .rows{margin-top:22px;font-family:var(--mono);font-size:15px;color:var(--muted);line-height:1.9}
+  .center .rows b{color:var(--ink)}
+
+  /* progress + cursor */
+  .prog{position:absolute;left:0;bottom:0;height:4px;background:var(--teal);width:0}
+  .cursor{position:absolute;left:0;top:0;width:26px;height:26px;z-index:50;opacity:0;filter:drop-shadow(0 2px 2px #10122b33);transform:translate(-3px,-2px)}
+  .pulse{position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:3px solid var(--teal);opacity:0;z-index:49}
+
+  .caret{color:var(--teal)}
+</style>
+</head>
+<body>
+  <div class="hdr">
+    <div class="brand">intigriti<span class="dot">.</span><small>RESEARCHER WRITE-UP</small></div>
+    <div class="right">Challenge <b>1126</b> · Super Fast Server</div>
+  </div>
+
+  <div class="stage">
+    <!-- INTRO -->
+    <div class="center" id="intro">
+      <div class="big">Super Fast Server<span class="dot">.</span></div>
+      <div class="sub">How we found the signature-bypass — Challenge 1126</div>
+    </div>
+
+    <!-- BROWSER -->
+    <div class="win" id="w-browser">
+      <div class="bar"><span class="d"></span><span class="d"></span><span class="d"></span>
+        <span class="url">challenge-1126.challenges.intigriti.io<span class="p" id="urlpath"></span></span>
+      </div>
+      <div class="inner">
+        <div class="cmt"># routing: fopen( strrchr(path,'/') + 1 )  → basename only</div>
+        <div id="br-line" style="margin-top:10px">&nbsp;</div>
+        <div id="br-line2" class="dim" style="margin-top:6px">&nbsp;</div>
+      </div>
+    </div>
+
+    <!-- HEX / STRINGS -->
+    <div class="win" id="w-hex">
+      <div class="bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="ttl">strings ./superfastserver | grep SECRET</span></div>
+      <div class="inner hex">
+        <div class="row"><span class="off">0014a0</span><span>72 75 73 74 5f 73 65 72 76 ...</span><span class="asc">rust_serv…</span></div>
+        <div class="row" style="position:relative;margin:4px 0">
+          <span class="off">0014c0</span>
+          <span><span class="hl" id="hex-hl">SUPER_SECRET_CHALLENGE_AUTH_CODE_…1337_INTIGRITI_&lt;hex&gt;</span></span>
+        </div>
+        <div class="row"><span class="off">001520</span><span>00 00 2f 74 68 65 5f 72 65 ...</span><span class="asc">../the_re…</span></div>
+      </div>
+    </div>
+
+    <!-- DISASM / DECOMPILER -->
+    <div class="win" id="w-dis">
+      <div class="bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="ttl">decompiler — handle_EXEC()</span></div>
+      <div class="inner">
+        <div><span class="kw">if</span> (rsa_verify(sig, sha256(</div>
+        <div class="under" id="dl1" style="margin-left:34px">&nbsp;&nbsp;buf + <b>CODE_off</b>, <b>CODElen + DATAlen</b>)))  <span class="cmt">// HASHED range</span></div>
+        <div style="margin-left:0">{</div>
+        <div class="under" id="dl2" style="margin-left:18px">run_bf(buf + <b>DATA_off</b>, tape);   <span class="cmt">// EXECUTED pointer</span></div>
+        <div>}</div>
+        <div class="anno" id="an1">▲ signed over the ORIGINAL bytes</div>
+        <div class="anno" id="an2">▲ taken from the LAST DATA frame</div>
+      </div>
+    </div>
+
+    <!-- EXPLOIT: terminal + bytemap -->
+    <div class="win" id="w-exp">
+      <div class="bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="ttl">python3 solve.py</span></div>
+      <div class="inner" style="width:500px">
+        <div id="ex1">&nbsp;</div>
+        <div id="ex2">&nbsp;</div>
+        <div id="ex3">&nbsp;</div>
+        <div id="ex4">&nbsp;</div>
+      </div>
+      <div class="bmap" id="bmap">
+        <div class="fr sg"><div class="o">0x000</div><div class="c"><span class="t">w·396·CODE</span> <span class="ds">interpreter</span></div></div>
+        <div class="fr sg"><div class="o">0x195</div><div class="c"><span class="t">w·424·DATA</span> <span class="ds">original · 820 signed</span></div></div>
+        <div class="fr ev" id="evfr" style="opacity:0;transform:translateX(40px)"><div class="o">0x346</div><div class="c"><span class="t">w·424·DATA</span> <span class="ds">&gt;×256 .&gt;…  ← INSERTED</span></div></div>
+        <div class="fr" id="signfr"><div class="o">0x346</div><div class="c"><span class="t">w·256·SIGN</span> <span class="ds">signature</span></div></div>
+      </div>
+    </div>
+
+    <!-- FLAG -->
+    <div class="win" id="w-flag">
+      <div class="bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="ttl">EXEC</span></div>
+      <div class="inner" style="text-align:center;padding-top:60px">
+        <div class="am" id="execline" style="font-size:18px">&nbsp;</div>
+        <div style="margin-top:28px"><span id="flagout" class="g" style="font-size:26px;font-weight:700"></span></div>
+      </div>
+    </div>
+
+    <!-- OUTRO -->
+    <div class="center" id="outro">
+      <div class="big">Hash the bytes you run<span class="dot">.</span></div>
+      <div class="sub">Not the ones you kept.</div>
+      <div class="rows">
+        <div><b>Challenge 1126</b> — Super Fast Server · signature bypass</div>
+        <div>full write-up &amp; self-contained PoC on <b>GitHub</b></div>
+      </div>
+    </div>
+
+    <!-- captions -->
+    <div class="cap" id="cap"><div class="step" id="capstep"></div><div class="txt" id="captxt"></div></div>
+
+    <!-- cursor -->
+    <svg class="cursor" id="cursor" viewBox="0 0 24 24"><path d="M3 2l7 18 2.6-7.4L20 9.8z" fill="#10122b" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>
+    <div class="pulse" id="pulse"></div>
+  </div>
+
+  <div class="prog" id="prog"></div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id);};
+  var T=32000; // total ms
+  function clamp(v,a,b){return v<a?a:v>b?b:v;}
+  function inv(t,a,b){return clamp((t-a)/(b-a),0,1);}      // 0..1 progress in window
+  function ease(x){return x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;}
+  function fade(t,a,b,hold){ // opacity ramp: fade-in over 400ms at a, fade-out 400ms before b
+    if(t<a||t>b) return 0;
+    var fi=inv(t,a,a+400), fo=1-inv(t,b-400,b);
+    return Math.min(fi,fo);
+  }
+  function sub(el,full,t,a,b){ // type substring of full between a..b
+    var n=Math.floor(inv(t,a,b)*full.length);
+    el.textContent=full.slice(0,n);
+  }
+  function subHTML(el,full,html,t,a,b){ var p=inv(t,a,b); if(p>=1){el.innerHTML=html;} else {el.textContent=full.slice(0,Math.floor(p*full.length));} }
+
+  // cursor keyframes [t, x, y]
+  var CK=[
+    [0,   640,680],
+    [3000,640,680],
+    [3800,980,150],   // browser url
+    [4900,980,150],
+    [5200,600,250],
+    [8000,600,420],
+    [9600,470,215],   // hex secret
+    [12600,470,215],
+    [14200,360,235],  // disasm line1
+    [16200,330,300],  // disasm line2
+    [19000,330,420],
+    [21000,360,300],  // terminal
+    [23400,900,300],  // bytemap insert
+    [26000,900,300],
+    [30000,640,360],
+    [32000,640,360]
+  ];
+  function cursorAt(t){
+    for(var i=0;i<CK.length-1;i++){
+      if(t>=CK[i][0]&&t<=CK[i+1][0]){
+        var p=ease(inv(t,CK[i][0],CK[i+1][0]));
+        return [CK[i][1]+(CK[i+1][1]-CK[i][1])*p, CK[i][2]+(CK[i+1][2]-CK[i][2])*p];
+      }
+    }
+    return [CK[CK.length-1][1],CK[CK.length-1][2]];
+  }
+  var CLICKS=[4900,9600,16200,23400]; // pulse times
+
+  var CAPS=[
+    [3000,8000, "Step 1 · Recon", "The server will hand over its <b>own binary</b> — path routing collapses to a basename, so we just ask for /superfastserver."],
+    [8000,13000,"Step 2 · The secret", 'The "can\'t be brute-forced" auth code is <b>sitting in the binary</b> as a plain string.'],
+    [13000,19000,"Step 3 · The bug", "EXEC <b>hashes one byte range</b> but <b>runs a different pointer</b> — and nothing keeps them in sync."],
+    [19000,26000,"Step 4 · Exploit", "Replay the signed bundle, then slip a <b>second DATA frame</b> in before SIGN."],
+    [26000,30000,"Result", "The signature still verifies over the old bytes — but <b>our</b> program runs, and prints the flag."]
+  ];
+
+  function render(t){
+    t=clamp(t,0,T);
+    // panes
+    $("intro").style.opacity   = fade(t,0,3200);
+    $("w-browser").style.opacity= fade(t,3000,8200);
+    $("w-hex").style.opacity    = fade(t,8000,13200);
+    $("w-dis").style.opacity    = fade(t,13000,19200);
+    $("w-exp").style.opacity    = fade(t,19000,26200);
+    $("w-flag").style.opacity   = fade(t,26000,30200);
+    $("outro").style.opacity    = fade(t,30000,32000);
+
+    // browser
+    sub($("urlpath"),"/superfastserver",t,3800,4700);
+    subHTML($("br-line"),"GET /superfastserver  ->  200  ELF (superfastserver 2.0.0)",
+      'GET <span class="g">/superfastserver</span>  ->  <span class="g">200</span>  ELF (superfastserver 2.0.0)',t,5200,6400);
+    if(t>6600){$("br-line2").textContent="downloaded 1 file — now we can reverse it.";} else {$("br-line2").innerHTML="&nbsp;";}
+
+    // hex highlight
+    $("hex-hl").style.opacity = fade(t,9400,13000)>0 ? 1 : 0;
+
+    // disasm underlines (grow width) + annotations
+    var u1=ease(inv(t,14200,15400)), u2=ease(inv(t,16000,17200));
+    $("dl1").querySelector? null:null;
+    document.querySelector("#dl1").style.setProperty("--x",0);
+    styleUnder("#dl1",u1); styleUnder("#dl2",u2);
+    $("an1").style.opacity = fade(t,15200,19000)?1:0; $("an1").style.top="88px"; $("an1").style.left="610px";
+    $("an2").style.opacity = fade(t,17000,19000)?1:0; $("an2").style.top="140px"; $("an2").style.left="610px";
+
+    // exploit terminal
+    typeLine($("ex1"),"secret = grep(elf, b'SUPER_SECRET_..._AUTH_CODE_')",t,19600,21000,"kw");
+    typeLine($("ex2"),"bundle = send(secret + frame(b'HELP'))      # signed",t,21000,22300,"kw");
+    typeLine($("ex3"),"evil   = splice(bundle, frame(b'DATA', bf)) # before SIGN",t,22300,23600,"kw");
+    typeLine($("ex4"),"send(secret + evil)                         # EXEC",t,23600,24600,"g");
+    // bytemap insert
+    var ip=ease(inv(t,23400,24200));
+    $("evfr").style.opacity=ip; $("evfr").style.transform="translateX("+(40*(1-ip))+"px)";
+    $("signfr").querySelector(".o").textContent = t>24200 ? "0x4CF":"0x346";
+
+    // flag
+    sub($("execline"),"EXEC  ->  verify OK  ->  running…",t,26400,27400);
+    sub($("flagout"),"INTIGRITI{4c0532a9-f169-4a5d-ae02-a8b0671d2b07}",t,27600,29200);
+
+    // caption
+    var cap=null; for(var i=0;i<CAPS.length;i++){ if(t>=CAPS[i][0]&&t<CAPS[i][1]) cap=CAPS[i]; }
+    if(cap){ $("cap").style.opacity=fade(t,cap[0],cap[1]); $("capstep").textContent=cap[2]; $("captxt").innerHTML=cap[3]; }
+    else $("cap").style.opacity=0;
+
+    // cursor (hidden in intro/outro)
+    var c=cursorAt(t); var cur=$("cursor");
+    var showCur = (t>3200 && t<29600)?1:0;
+    cur.style.opacity=showCur; cur.style.left=c[0]+"px"; cur.style.top=c[1]+"px";
+    // click pulse
+    var pl=$("pulse"), pop=0, px=c[0],py=c[1];
+    for(var k=0;k<CLICKS.length;k++){ var d=t-CLICKS[k]; if(d>=0&&d<600){ pop=1-(d/600); } }
+    pl.style.opacity=pop*0.9; pl.style.left=px+"px"; pl.style.top=py+"px"; pl.style.transform="scale("+(0.3+ (1-pop))+")";
+
+    // progress
+    $("prog").style.width=(t/T*1280)+"px";
+  }
+
+  function styleUnder(sel,p){ var el=document.querySelector(sel); el.style.setProperty("position","relative"); var a=el.__u||(el.__u=mkUnder(el)); a.style.right=(100-p*100)+"%"; }
+  function mkUnder(el){ var s=document.createElement("span"); s.style.cssText="position:absolute;left:0;right:100%;bottom:-3px;height:2px;background:var(--amber)"; el.appendChild(s); return s; }
+  function typeLine(el,full,t,a,b,cls){ var n=Math.floor(inv(t,a,b)*full.length); if(n<=0){el.innerHTML="&nbsp;";return;} var shown=full.slice(0,n); el.innerHTML='<span class="'+(cls||"")+'">'+esc(shown)+'</span>'; }
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+
+  // ---- entry ----
+  var params=new URLSearchParams(location.search);
+  if(params.has("t")){
+    // static single-frame render for headless capture
+    render(parseFloat(params.get("t"))||0);
+    document.documentElement.setAttribute("data-rendered","1");
+  } else {
+    var start=null;
+    function loop(ts){ if(start===null)start=ts; var t=(ts-start)%(T+1500); render(t); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  }
+  window.__render=render;
+})();
+</script>
+</body>
+</html>

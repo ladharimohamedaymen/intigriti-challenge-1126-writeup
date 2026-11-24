@@ -14,6 +14,14 @@
 | **Root cause** | Hash region ≠ executed region |
 | **Payload** | One duplicate `DATA` frame |
 
+## Walkthrough
+
+![Challenge 1126 walkthrough](challenge-1126-preview.gif)
+
+Step-by-step recreation of the solve — recon → the secret → the bug → exploit → flag.
+▶ Full-quality video: [`challenge-1126-explainer.mp4`](challenge-1126-explainer.mp4).
+*(The tool panes are faithful recreations for the write-up, not a desktop capture.)*
+
 ## TL;DR
 
 The server runs signed shellcode: an uploaded Brainfuck interpreter (`CODE`) plus a
